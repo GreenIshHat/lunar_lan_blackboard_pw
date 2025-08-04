@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Luna LAN Blackboard (Secured)</title>
+    <script>
+        let timeout = null;
+        let lastText = "";
+        window.onload = function() {
+            lastText = document.getElementById("board").value;
+        }
+        function save(force) {
+            let txt = document.getElementById("board").value;
+            if(txt === lastText && !force) return;
+            fetch("/update", {
+                method: "POST",
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: txt})
+            });
+            lastText = txt;
+        }
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("board").addEventListener("input", function() {
+                if(timeout) clearTimeout(timeout);
+                timeout = setTimeout(() => save(false), 3000); // 3s debounce
+            });
+            // Auto-refresh every 10s if not focused
+            setInterval(() => {
+                let textarea = document.getElementById("board");
+                if(document.activeElement !== textarea) {
+                    fetch("/text").then(r => r.json()).then(d => {
+                        textarea.value = d.text;
+                        lastText = d.text;
+                    });
+                }
+            }, 13000);
+        });
+    </script>
+</head>
+<body>
+    <h1>Luna LAN Blackboard (Secured)</h1>
+    <form id="bb-form" onsubmit="save(true); return false;">
+        <textarea id="board" name="board" rows="20" cols="80">{{ text }}</textarea><br>
+        <button type="button" onclick="save(true)">Save</button>
+    </form>
+    <p><a href="/logout">Logout</a></p>
+</body>
+</html>
